@@ -80,3 +80,40 @@ Describe 'The contract refuses a stored depth by shape, not by convention' {
         $schema.version | Should-Be '0.1.0'
     }
 }
+
+Describe 'A schema violation is located, not just described' {
+    # F1 found every schema violation reporting the document root while the
+    # actual JSON Pointer sat unparsed inside the message. The contract
+    # promises a path for every violation, and "$" for all of them is the same
+    # as no path at all.
+
+    It 'converts the pointer Test-Json emits into the path the semantic rules use' -ForEach @(
+        @{ Pointer = '/graph/nodes/1'; Expected = 'graph.nodes[1]' }
+        @{ Pointer = '/graph/nodes/1/depth'; Expected = 'graph.nodes[1].depth' }
+        @{ Pointer = '/graph/vertices'; Expected = 'graph.vertices' }
+        @{ Pointer = '/'; Expected = '$' }
+        @{ Pointer = ''; Expected = '$' }
+    ) {
+        $module = Get-Module -Name PSGraphRenderToHtml
+        $actual = & $module { param($p) ConvertFrom-JsonPointer -Pointer $p } $Pointer
+        $actual | Should-Be $Expected
+    }
+
+    It 'locates a real schema failure rather than falling back to the root' -ForEach @(
+        @{ Case = 'stored-depth'; Expected = 'graph.nodes[1].depth' }
+        @{ Case = 'wrong-type'; Expected = 'graph.nodes[1].scope' }
+        @{ Case = 'empty-label'; Expected = 'graph.nodes[1].label' }
+        @{ Case = 'unknown-key'; Expected = 'graph.vertices' }
+        @{ Case = 'missing-id'; Expected = 'graph.nodes[1]' }
+    ) {
+        $result = Test-ProducerGraph -Graph (Get-ViolatingGraph -Case $Case)
+        $result.IsValid | Should-BeFalse
+        @($result.Violations | ForEach-Object { $_.Path }) | Should-ContainCollection $Expected
+    }
+
+    It 'still reports the root when a message names no location' {
+        $module = Get-Module -Name PSGraphRenderToHtml
+        $actual = & $module { Get-SchemaViolationPath -Message 'something went wrong and said where nowhere' }
+        $actual | Should-Be '$'
+    }
+}
