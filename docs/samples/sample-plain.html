@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sample estate</title>
+<style>
+/* No CDN, no library, no layout engine. The point of this backend is that a
+   reader with no network gets the whole thing. */
+:root { color-scheme: light dark; }
+body {
+  font-family: var(--BodyFont);
+  background: var(--PageBackground);
+  color: var(--BodyColor);
+  margin: 0;
+  padding: 2rem;
+  line-height: 1.5;
+}
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 { font-size: 1.1rem; margin: 2rem 0 .5rem; }
+#provenance { margin: 0; opacity: .7; font-size: .875rem; }
+table { border-collapse: collapse; width: 100%; font-size: .875rem; }
+/* Wide content scrolls inside its own container; the page never scrolls
+   sideways. */
+section { overflow-x: auto; }
+th, td {
+  text-align: left;
+  padding: .35rem .6rem;
+  border-bottom: 1px solid var(--RuleColor);
+  vertical-align: top;
+}
+th { font-weight: 600; white-space: nowrap; }
+td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr:hover { background: var(--RowHoverBackground); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sample estate</h1>
+  <p id="provenance"></p>
+</header>
+<main>
+  <section>
+    <h2 id="nodes-heading"></h2>
+    <table id="nodes">
+      <thead><tr id="nodes-head"></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+  <section>
+    <h2 id="links-heading"></h2>
+    <table id="links">
+      <thead><tr id="links-head"></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+<script>
+const DATA = {
+  "nodes": [
+    {
+      "id": "repo:platform",
+      "name": "platform",
+      "kind": "repository",
+      "scope": "platform",
+      "metrics": {
+        "depth": 0,
+        "dependents": 0,
+        "dependencies": 0
+      },
+      "path": "C:/fixtures/estate/platform"
+    },
+    {
+      "id": "repo:services",
+      "name": "services",
+      "kind": "repository",
+      "scope": "services",
+      "metrics": {
+        "depth": 0,
+        "dependents": 0,
+        "dependencies": 0
+      },
+      "path": "C:/fixtures/estate/services"
+    },
+    {
+      "id": "platform:root",
+      "name": "root",
+      "kind": "module",
+      "scope": "platform",
+      "metrics": {
+        "depth": 1,
+        "dependents": 0,
+        "dependencies": 1
+      },
+      "parentId": "repo:platform",
+      "path": "C:/fixtures/estate/platform/main.tf"
+    },
+    {
+      "id": "platform:naming",
+      "name": "naming",
+      "kind": "module",
+      "scope": "platform",
+      "metrics": {
+        "depth": 2,
+        "dependents": 2,
+        "dependencies": 0
+      },
+      "parentId": "platform:root",
+      "path": "C:/fixtures/estate/platform/modules/naming/main.tf"
+    },
+    {
+      "id": "platform:naming.prefix",
+      "name": "prefix",
+      "kind": "variable",
+      "scope": "platform",
+      "metrics": {
+        "depth": 3,
+        "dependents": 0,
+        "dependencies": 1
+      },
+      "parentId": "platform:naming",
+      "hasDefault": true,
+      "required": false
+    },
+    {
+      "id": "platform:naming.name",
+      "name": "name",
+      "kind": "output",
+      "scope": "platform",
+      "metrics": {
+        "depth": 3,
+        "dependents": 1,
+        "dependencies": 0
+      },
+      "parentId": "platform:naming"
+    },
+    {
+      "id": "services:root",
+      "name": "root",
+      "kind": "module",
+      "scope": "services",
+      "metrics": {
+        "depth": 1,
+        "dependents": 0,
+        "dependencies": 3
+      },
+      "parentId": "repo:services",
+      "path": "C:/fixtures/estate/services/main.tf"
+    },
+    {
+      "id": "services:api",
+      "name": "api",
+      "kind": "module",
+      "scope": "services",
+      "metrics": {
+        "depth": 2,
+        "dependents": 3,
+        "dependencies": 2
+      },
+      "parentId": "services:root",
+      "path": "C:/fixtures/estate/services/modules/api/main.tf"
+    },
+    {
+      "id": "services:api.worker",
+      "name": "worker",
+      "kind": "module",
+      "scope": "services",
+      "metrics": {
+        "depth": 3,
+        "dependents": 2,
+        "dependencies": 0
+      },
+      "parentId": "services:api",
+      "path": "C:/fixtures/estate/services/modules/api/modules/worker/main.tf"
+    },
+    {
+      "id": "services:env",
+      "name": "env",
+      "kind": "variable",
+      "scope": "services",
+      "metrics": {
+        "depth": 2,
+        "dependents": 0,
+        "dependencies": 1
+      },
+      "parentId": "services:root",
+      "hasDefault": false,
+      "required": true
+    },
+    {
+      "id": "services:tags",
+      "name": "tags",
+      "kind": "local",
+      "scope": "services",
+      "metrics": {
+        "depth": 2,
+        "dependents": 1,
+        "dependencies": 1
+      },
+      "parentId": "services:root"
+    },
+    {
+      "id": "services:api.url",
+      "name": "url",
+      "kind": "output",
+      "scope": "services",
+      "metrics": {
+        "depth": 3,
+        "dependents": 0,
+        "dependencies": 1
+      },
+      "parentId": "services:api"
+    },
+    {
+      "id": "services:missing",
+      "name": "shared/legacy",
+      "kind": "module",
+      "scope": "services",
+      "metrics": {
+        "depth": 2,
+        "dependents": 1,
+        "dependencies": 0
+      },
+      "parentId": "services:root"
+    },
+    {
+      "id": "provider:random",
+      "name": "random 3.6.0",
+      "kind": "provider",
+      "scope": "platform",
+      "metrics": {
+        "depth": 1,
+        "dependents": 0,
+        "dependencies": 0
+      },
+      "parentId": "repo:platform",
+      "pinned": true
+    },
+    {
+      "id": "provider:time",
+      "name": "time 0.11.1",
+      "kind": "provider",
+      "scope": "services",
+      "metrics": {
+        "depth": 1,
+        "dependents": 0,
+        "dependencies": 0
+      },
+      "parentId": "repo:services",
+      "pinned": true
+    }
+  ],
+  "links": [
+    {
+      "source": "platform:root",
+      "target": "platform:naming",
+      "kind": "sources",
+      "sourceName": "root",
+      "targetName": "naming",
+      "resolution": "resolved"
+    },
+    {
+      "source": "services:root",
+      "target": "services:api",
+      "kind": "sources",
+      "sourceName": "root",
+      "targetName": "api",
+      "resolution": "resolved"
+    },
+    {
+      "source": "services:api",
+      "target": "services:api.worker",
+      "kind": "sources",
+      "sourceName": "api",
+      "targetName": "worker",
+      "resolution": "resolved"
+    },
+    {
+      "source": "services:root",
+      "target": "platform:naming",
+      "kind": "sources",
+      "sourceName": "root",
+      "targetName": "naming",
+      "resolution": "resolved"
+    },
+    {
+      "source": "services:env",
+      "target": "services:tags",
+      "kind": "references",
+      "sourceName": "env",
+      "targetName": "tags"
+    },
+    {
+      "source": "services:tags",
+      "target": "services:api",
+      "kind": "passes-to",
+      "sourceName": "tags",
+      "targetName": "api"
+    },
+    {
+      "source": "services:api",
+      "target": "services:api.worker",
+      "kind": "passes-to",
+      "sourceName": "api",
+      "targetName": "worker"
+    },
+    {
+      "source": "services:api.url",
+      "target": "services:api",
+      "kind": "references",
+      "sourceName": "url",
+      "targetName": "api"
+    },
+    {
+      "source": "platform:naming.prefix",
+      "target": "platform:naming.name",
+      "kind": "references",
+      "sourceName": "prefix",
+      "targetName": "name"
+    },
+    {
+      "source": "services:root",
+      "target": "services:missing",
+      "kind": "sources",
+      "sourceName": "root",
+      "targetName": "shared/legacy",
+      "resolution": "unresolved"
+    }
+  ],
+  "unresolved": [
+    {
+      "source": "services:root",
+      "targetName": "shared/legacy",
+      "sourceName": "root",
+      "reason": "source path ../shared/legacy exists in no scanned repository"
+    }
+  ],
+  "stats": {
+    "producer": "PSGraphRenderToHtml.Sample",
+    "producerVersion": "0.1.0"
+  }
+};
+const META = {
+  "contractVersion": "1.1.0",
+  "title": "Sample estate",
+  "version": "0.1.0",
+  "generatedAt": "2026-08-29T19:34:04Z",
+  "rootPath": "C:/fixtures/estate",
+  "stats": {
+    "NodeCount": 15,
+    "EdgeCount": 10,
+    "UnresolvedCount": 1,
+    "ScopeCount": 2,
+    "KindCount": 6,
+    "MaxDepth": 3.0
+  }
+};
+const CONFIG = {
+  "BodyColor": "#111111",
+  "BodyFont": "system-ui, -apple-system, Segoe UI, sans-serif",
+  "PageBackground": "#ffffff",
+  "RowHoverBackground": "#f3f3f3",
+  "RuleColor": "#dddddd"
+};
+const STRINGS = {
+  "PlainLinksHeading": "Links ({count})",
+  "PlainNodesHeading": "Nodes ({count})",
+  "PlainProvenance": "Generated {generatedAt}"
+};
+
+// Theme values arrive as configuration like any other setting, so this backend
+// reads the same four data files the reference one does.
+for (const [key, value] of Object.entries(CONFIG || {})) {
+  if (typeof value === 'string' && value.startsWith('#')) {
+    document.documentElement.style.setProperty('--' + key, value);
+  }
+}
+for (const [key, fallback] of Object.entries({
+  BodyFont: 'system-ui, sans-serif',
+  PageBackground: '#ffffff',
+  BodyColor: '#111111',
+  RuleColor: '#dddddd',
+  RowHoverBackground: '#f3f3f3',
+})) {
+  const existing = getComputedStyle(document.documentElement).getPropertyValue('--' + key);
+  if (!existing.trim()) {
+    document.documentElement.style.setProperty('--' + key, (CONFIG && CONFIG[key]) || fallback);
+  }
+}
+
+function str(key, fallback) {
+  const value = STRINGS && STRINGS[key];
+  return typeof value === 'string' ? value : (fallback !== undefined ? fallback : key);
+}
+
+// A token nobody filled stays as written rather than collapsing to nothing, so
+// the gap shows up. Same rule as the reference backend.
+function fmt(key, values, fallback) {
+  let text = str(key, fallback);
+  for (const [name, value] of Object.entries(values || {})) {
+    text = text.split('{' + name + '}').join(String(value));
+  }
+  return text;
+}
+
+function cell(value) {
+  const td = document.createElement('td');
+  if (typeof value === 'number') { td.className = 'numeric'; }
+  // textContent, never innerHTML. A label carrying markup is data, not markup.
+  td.textContent = value === null || value === undefined ? '' : String(value);
+  return td;
+}
+
+// Columns are whatever the rows actually carry, in first-seen order. Nothing
+// here names a field, so a payload describing something that is not code
+// renders without this file knowing anything about it.
+function columnsOf(rows) {
+  const seen = [];
+  for (const row of rows) {
+    for (const key of Object.keys(row || {})) {
+      if (!seen.includes(key) && typeof row[key] !== 'object') { seen.push(key); }
+    }
+  }
+  return seen;
+}
+
+function fill(tableId, headingId, headingKey, rows) {
+  const table = document.getElementById(tableId);
+  const columns = columnsOf(rows);
+
+  const head = document.getElementById(tableId + '-head');
+  for (const name of columns) {
+    const th = document.createElement('th');
+    th.textContent = name;
+    head.appendChild(th);
+  }
+
+  const body = table.querySelector('tbody');
+  for (const row of rows) {
+    const tr = document.createElement('tr');
+    for (const name of columns) { tr.appendChild(cell(row ? row[name] : null)); }
+    body.appendChild(tr);
+  }
+
+  document.getElementById(headingId).textContent =
+    fmt(headingKey, { count: rows.length }, headingKey + ' ({count})');
+}
+
+const nodes = (DATA && DATA.nodes) || [];
+const links = (DATA && DATA.links) || [];
+
+fill('nodes', 'nodes-heading', 'PlainNodesHeading', nodes);
+fill('links', 'links-heading', 'PlainLinksHeading', links);
+
+if (META) {
+  document.getElementById('provenance').textContent =
+    fmt('PlainProvenance', { generatedAt: META.generatedAt || '' }, 'Generated {generatedAt}');
+}
+</script>
+</body>
+</html>
