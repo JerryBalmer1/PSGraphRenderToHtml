@@ -45,8 +45,12 @@ Describe 'The documentation points only at things that exist' -Tag 'PreTag' {
             # not exist here - a false positive, and the kind that trains a
             # reader to ignore the gate. It also flagged `docs/vendoring.md`,
             # which was a real defect and is fixed.
-            $matches = [regex]::Matches($text, '`((?:src|tests|docs|contract|scripts)/[A-Za-z0-9._/*<>-]+)`')
-            foreach ($match in $matches) {
+            # NOT $matches: that is an automatic variable holding the captures
+            # of the last -match, and this same test uses -match. The analyzer
+            # caught it; the default build lints and the PreTag task does not,
+            # so it went green here before it went red there.
+            $candidates = [regex]::Matches($text, '`((?:src|tests|docs|contract|scripts)/[A-Za-z0-9._/*<>-]+)`')
+            foreach ($match in $candidates) {
                 $candidate = $match.Groups[1].Value
                 # Placeholders are not claims about a path.
                 if ($candidate -match '[<>*]') { continue }
