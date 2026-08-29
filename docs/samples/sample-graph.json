@@ -1,0 +1,43 @@
+{
+  "graph": {
+    "meta": {
+      "producer": "PSGraphRenderToHtml.Sample",
+      "producerVersion": "0.1.0",
+      "contractVersion": "0.1.0",
+      "generatedUtc": "2026-08-29T00:00:00Z",
+      "roots": ["C:/fixtures/estate"]
+    },
+    "nodes": [
+      { "id": "repo:platform", "label": "platform", "type": "repository", "scope": "platform", "parentId": null, "path": "C:/fixtures/estate/platform" },
+      { "id": "repo:services", "label": "services", "type": "repository", "scope": "services", "parentId": null, "path": "C:/fixtures/estate/services" },
+
+      { "id": "platform:root", "label": "root", "type": "module", "scope": "platform", "parentId": "repo:platform", "path": "C:/fixtures/estate/platform/main.tf" },
+      { "id": "platform:naming", "label": "naming", "type": "module", "scope": "platform", "parentId": "platform:root", "path": "C:/fixtures/estate/platform/modules/naming/main.tf" },
+      { "id": "platform:naming.prefix", "label": "prefix", "type": "variable", "scope": "platform", "parentId": "platform:naming", "attributes": { "hasDefault": true, "required": false } },
+      { "id": "platform:naming.name", "label": "name", "type": "output", "scope": "platform", "parentId": "platform:naming" },
+
+      { "id": "services:root", "label": "root", "type": "module", "scope": "services", "parentId": "repo:services", "path": "C:/fixtures/estate/services/main.tf" },
+      { "id": "services:api", "label": "api", "type": "module", "scope": "services", "parentId": "services:root", "path": "C:/fixtures/estate/services/modules/api/main.tf" },
+      { "id": "services:api.worker", "label": "worker", "type": "module", "scope": "services", "parentId": "services:api", "path": "C:/fixtures/estate/services/modules/api/modules/worker/main.tf" },
+      { "id": "services:env", "label": "env", "type": "variable", "scope": "services", "parentId": "services:root", "attributes": { "hasDefault": false, "required": true } },
+      { "id": "services:tags", "label": "tags", "type": "local", "scope": "services", "parentId": "services:root" },
+      { "id": "services:api.url", "label": "url", "type": "output", "scope": "services", "parentId": "services:api" },
+      { "id": "services:missing", "label": "shared/legacy", "type": "module", "scope": "services", "parentId": "services:root" },
+
+      { "id": "provider:random", "label": "random 3.6.0", "type": "provider", "scope": "platform", "parentId": "repo:platform", "attributes": { "pinned": true } },
+      { "id": "provider:time", "label": "time 0.11.1", "type": "provider", "scope": "services", "parentId": "repo:services", "attributes": { "pinned": true } }
+    ],
+    "edges": [
+      { "from": "platform:root", "to": "platform:naming", "kind": "sources", "resolved": true },
+      { "from": "services:root", "to": "services:api", "kind": "sources", "resolved": true },
+      { "from": "services:api", "to": "services:api.worker", "kind": "sources", "resolved": true },
+      { "from": "services:root", "to": "platform:naming", "kind": "sources", "label": "git::", "resolved": true },
+      { "from": "services:env", "to": "services:tags", "kind": "references" },
+      { "from": "services:tags", "to": "services:api", "kind": "passes-to" },
+      { "from": "services:api", "to": "services:api.worker", "kind": "passes-to", "label": "tags" },
+      { "from": "services:api.url", "to": "services:api", "kind": "references" },
+      { "from": "platform:naming.prefix", "to": "platform:naming.name", "kind": "references" },
+      { "from": "services:root", "to": "services:missing", "kind": "sources", "resolved": false, "reason": "source path ../shared/legacy exists in no scanned repository" }
+    ]
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JerryBalmer1/PSGraphRenderToHtml/contract/producer-graph.schema.json",
+  "title": "Producer graph",
+  "version": "0.1.0",
+  "description": "What a producer hands to PSGraphRenderToHtml. It is deliberately SMALLER than PSGraphRender's view model: a producer states what it found, and this module derives everything that can be derived.\n\nVersioned independently of the module, and its protocol mirrors the render contract's: additive changes bump minor, shape changes bump major, a renamed field keeps its old name as a deprecated alias carrying a `since` marker, and removal is not an operation this contract has. A producer written for 0.1.0 must keep validating against every later 0.x.\n\nThe rule that decides whether a field belongs here: if a producer would have to compute it rather than observe it, it does not belong. Depth is the worked example - it is a function of the parentId chain, it is derived in ConvertTo-GraphRenderViewModel and nowhere else, and a producer that stores it has two sources of truth that can disagree. `additionalProperties` is false at every level so that a stored depth is a validation error rather than a field nobody reads.\n\nWhat this schema cannot express is checked by Test-ProducerGraph: every edge endpoint resolves to a node id, parentId chains are acyclic, and ids are unique. A schema-valid graph is not necessarily a usable one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["graph"],
+  "properties": {
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "description": "Every thing the producer found. May be empty only for a genuinely empty source.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label", "type", "scope"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Unique within the graph. The producer's own id scheme; this module never parses it."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "description": "What a reader is shown. An empty label renders as an unclickable blank and is refused."
+              },
+              "type": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The producer's classification of the node. A free string: this module never enumerates the values, because the moment it did it would know what a producer's domain is."
+              },
+              "scope": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Which bounded region the node belongs to - a repository, a subscription, a namespace. Used for grouping and colouring, never interpreted."
+              },
+              "parentId": {
+                "type": ["string", "null"],
+                "description": "The node this one is contained by, or null/absent for a root. Containment is expressed HERE and never as an edge: a `contains` edge and a parentId would be two statements of one fact. Chains must be acyclic; Test-ProducerGraph checks that."
+              },
+              "path": {
+                "type": "string",
+                "description": "Absolute path to the file this node came from, when the producer knows one. Optional. Consumed by the vscode:// link map."
+              },
+              "attributes": {
+                "type": "object",
+                "description": "Producer-specific facts, carried through to the view model as classifications and measurements. Values must be scalars; a nested object here is a shape this contract has not agreed to.",
+                "additionalProperties": {
+                  "type": ["string", "number", "boolean", "null"]
+                }
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "description": "Every relationship except containment.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to", "kind"],
+            "properties": {
+              "from": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Source node id. Must resolve; Test-ProducerGraph checks that."
+              },
+              "to": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Target node id. Must resolve."
+              },
+              "kind": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The producer's classification of the relationship - `sources`, `references`, `passes-to`. A free string for the same reason `type` is. `contains` is NOT a valid use of an edge; use parentId."
+              },
+              "label": {
+                "type": "string",
+                "description": "Optional text shown on the edge."
+              },
+              "resolved": {
+                "type": "boolean",
+                "description": "False when the producer knows the relationship exists but could not resolve its target to something real - a module sourced from a path present in no scanned repository. Absent means NOT STATED rather than true, the same rule the render contract uses for its optional fields. An unresolved reference is carried with this flag rather than dropped: a producer that silently drops what it could not resolve reports a graph that looks complete and is not."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why `resolved` is false, in the producer's words. Required by Test-ProducerGraph whenever resolved is false - a false without a reason is an unactionable finding."
+              }
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "description": "Provenance. Nothing here describes the graph's shape.",
+          "additionalProperties": true,
+          "properties": {
+            "producer": {
+              "type": "string",
+              "description": "The name of the producing module."
+            },
+            "producerVersion": {
+              "type": "string",
+              "description": "Its version. A free string: a semver, a git sha and a date are all legitimate."
+            },
+            "contractVersion": {
+              "type": "string",
+              "description": "Which version of THIS document the payload was written against. Not required, deliberately - a payload written before the field existed must still validate."
+            },
+            "generatedUtc": {
+              "type": "string",
+              "description": "When the scan ran."
+            },
+            "roots": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "The paths that were scanned."
+            }
+          }
+        }
+      }
+    }
+  }
+}
