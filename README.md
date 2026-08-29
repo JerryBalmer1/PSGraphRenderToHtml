@@ -138,8 +138,12 @@ module or a pipeline is.
 | File | Read it when |
 | --- | --- |
 | [`docs/HANDOFF.md`](docs/HANDOFF.md) | **first.** What this is, the contract, the boundaries, how it is operated, what is open |
-| [`docs/vendoring.md`](https://github.com/JerryBalmer1/PSGraphRender/blob/main/docs/vendoring.md) | in PSGraphRender — this module vendors nothing |
+| [`contract/producer-graph.schema.json`](contract/producer-graph.schema.json) | writing a producer, or proposing a contract change. The schema is the authority |
 | `docs/worklog/` | why a release did what it did |
+
+This module vendors nothing and has no vendoring document. Third-party files
+live in [PSGraphRender](https://github.com/JerryBalmer1/PSGraphRender), which
+carries the provenance for all of them.
 
 ## Licence
 
