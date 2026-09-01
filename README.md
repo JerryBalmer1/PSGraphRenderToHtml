@@ -124,7 +124,7 @@ module path — and the build **prints the version it resolved**, because
 | Repository | Relationship |
 | --- | --- |
 | [PSGraphRender](https://github.com/JerryBalmer1/PSGraphRender) | **consumed.** v0.13.0. Every byte of a rendered document comes from it; this module contains no markup |
-| [PSTerraformGraph](https://github.com/JerryBalmer1/PSTerraformGraph) | **consumer.** v0.1.0, the first real producer. It emits against this contract and its build runs the battery; run tf-001 scored it 6/7 on the fixture's named cases |
+| [PSTerraformGraph](https://github.com/JerryBalmer1/PSTerraformGraph) | **consumer.** v0.2.0, the first real producer. It emits against this contract and its build runs the battery; run tf-002 scored it 7/7 on the fixture's named cases and 7/7 on this battery |
 | [PSModuleGraph](https://github.com/JerryBalmer1/PSModuleGraph) | a producer that renders through PSGraphRender directly today; a candidate to move here |
 | [PSAzureDevOpsGraph](https://github.com/JerryBalmer1/PSAzureDevOpsGraph) | a candidate producer — pipelines and repositories |
 | AI.Agent.Claude.PowerShellModuleBuilder | the harness this repository is operated from. Its decision 0010 governs how `main` and tags move here |

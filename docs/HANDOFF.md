@@ -127,12 +127,25 @@ defect in **this** module, and a producer running the battery is what finds it.
 
 ## Open
 
-- **No real producer has run the battery yet.** Every assertion here has been
-  exercised against a hand-written sample and against violating graphs built by
-  mutating a known-good one. The sample was written by the same pass that wrote
-  the contract, which is the weakest kind of evidence there is. PSTerraformGraph
-  is the first real consumer and the first genuine test of whether the contract
-  fits a domain nobody had in mind while writing it.
+- **One real producer has now run the battery.** PSTerraformGraph v0.2.0 runs
+  it in its own build against its own output and passes 7/7, including the
+  assertion that earns its keep: that the graph maps to a view model
+  PSGraphRender accepts. Before that, every assertion had been exercised only
+  against a hand-written sample and against violating graphs made by mutating a
+  known-good one — and the sample was written by the same pass that wrote the
+  contract, which is the weakest kind of evidence there is.
+
+  What that does and does not settle: the contract fits a domain nobody had in
+  mind while writing it, which was the open question. It is still **one**
+  producer. Two would be a measurement.
+- **The absent-versus-false rule was read as being about one field.** The schema
+  states of an edge's `resolved` that absent means NOT STATED, and calls it the
+  same rule the render contract uses for its optional fields — meaning it
+  generally. PSTerraformGraph wrote `hasValidation: false` on every node that
+  had no validation, and it cost 28 differences against a hand-authored oracle
+  before anyone read the sentence as general. If the rule is meant to hold for
+  every optional field in the producer contract, it should say so where a
+  producer author will look, not once inside one field's description.
 - **The producer contract has one producer's worth of design in it.** `type`,
   `scope`, `parentId` and four edge kinds were chosen against a Terraform-shaped
   and a PowerShell-shaped graph. The second real producer is what turns that
@@ -157,6 +170,6 @@ defect in **this** module, and a producer running the battery is what finds it.
 
 | Repository | Status |
 | --- | --- |
-| PSTerraformGraph | next. The first real producer |
+| PSTerraformGraph | **shipped.** v0.2.0. Runs the battery in its own build, 7/7 |
 | PSModuleGraph | today renders through PSGraphRender directly; could move here |
 | PSAzureDevOpsGraph | a candidate; emits a graph of pipelines and repositories |
