@@ -26,12 +26,45 @@ function Write-PowerShellDataFile {
         A key's value is REPLACED, not deep-merged. Handing back half of a
         caller's KindColor map and half of the backend's would be a colour
         scheme neither of them wrote.
+
+        .PSBase.Keys, NOT .Keys. On a hashtable PowerShell resolves a member
+        name against the dictionary's ENTRIES before its properties, so a map
+        containing a key called 'Keys' answers $map.Keys with that entry's
+        value and the writer walks the wrong object. A KindColor map is keyed
+        by the producer's classifications, and 'Keys', 'Values' and 'Count' are
+        all things a producer might reasonably call a node type. The same trap
+        caught the ColorBy schema read in v0.1.1's own test - $entry.Values
+        returning every field of the entry instead of the enum it declares -
+        which is twice in one release, in opposite directions.
+
+        KEYS ARE QUOTED WHEN THEY HAVE TO BE, and the case is not exotic. A
+        KindColor map is keyed by the PRODUCER's classifications, and
+        `cross-cutting` written bare is read by the .psd1 parser as `cross`
+        minus `cutting`. The file then fails to parse as a whole, the renderer
+        warns and falls back to its built-in theme, and the page draws every
+        node in the fallback grey - a diagram that renders, looks deliberate,
+        and carries none of the meaning it was configured with.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string] $Path,
         [Parameter(Mandatory)] [System.Collections.IDictionary] $Data
     )
+
+    function Format-DataFileKey {
+        <#
+            A key as .psd1 source. Bare when it is a plain identifier, quoted
+            when it is anything else - which a producer's classification very
+            easily is: 'cross-cutting', 'powershell-module', 'tf'. Quoting
+            everything unconditionally would work and would make the backend's
+            own hand-written files unrecognisable next to their generated
+            overlay, which is the file a reader diffs when a theme does not
+            apply.
+        #>
+        param([Parameter(Mandatory)] [string] $Key)
+        if ($Key -match '^[A-Za-z_][A-Za-z0-9_]*$') { return $Key }
+        "'" + $Key.Replace("'", "''") + "'"
+    }
 
     function ConvertTo-DataFileLiteral {
         <#
@@ -61,9 +94,9 @@ function Write-PowerShellDataFile {
             $inner = $Indent + '    '
             $parts = [System.Collections.Generic.List[string]]::new()
             $parts.Add('@{')
-            foreach ($key in ($Value.Keys | Sort-Object)) {
+            foreach ($key in ($Value.PSBase.Keys | Sort-Object)) {
                 $literal = ConvertTo-DataFileLiteral -Value $Value[$key] -Indent $inner -Trail "$Trail.$key"
-                $parts.Add(('{0}{1,-24} = {2}' -f $inner, $key, $literal))
+                $parts.Add(('{0}{1,-24} = {2}' -f $inner, (Format-DataFileKey -Key $key), $literal))
             }
             $parts.Add($Indent + '}')
             return ($parts -join [Environment]::NewLine)
@@ -87,9 +120,9 @@ function Write-PowerShellDataFile {
     $lines.Add('# PSGraphRender backend, not that backend. Do not edit; do not commit.')
     $lines.Add('@{')
 
-    foreach ($key in ($Data.Keys | Sort-Object)) {
+    foreach ($key in ($Data.PSBase.Keys | Sort-Object)) {
         $literal = ConvertTo-DataFileLiteral -Value $Data[$key] -Indent '    ' -Trail $key
-        $lines.Add(('    {0,-24} = {1}' -f $key, $literal))
+        $lines.Add(('    {0,-24} = {1}' -f (Format-DataFileKey -Key $key), $literal))
     }
 
     $lines.Add('}')

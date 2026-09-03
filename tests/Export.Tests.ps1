@@ -144,6 +144,27 @@ Describe 'A theme override reaches the backend, including a nested one' {
         }
     }
 
+    It 'colours a classification whose name is not a bare identifier' {
+        # A KindColor map is keyed by the PRODUCER's classifications, and
+        # 'cross-cutting' written bare parses as cross minus cutting. The whole
+        # file then fails to parse, the renderer warns and falls back to its
+        # built-in theme, and the page draws in the fallback grey - rendering
+        # successfully, looking deliberate, and carrying nothing. Two of this
+        # repository's own consumers have a hyphen in a node type.
+        $graph = Get-ConformingGraph
+        foreach ($node in $graph.graph.nodes) { $node.type = 'cross-cutting' }
+        $file = Join-Path $script:Work 'hyphenated.json'
+        $graph | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $file -Encoding utf8NoBOM
+
+        $warnings = @()
+        $document = Export-ProducerGraphHtml -Path $file -Options (
+            New-GraphRenderOptions -Theme @{ KindColor = @{ 'cross-cutting' = '#F2C14E' } }
+        ) -WarningVariable warnings -WarningAction SilentlyContinue
+
+        @($warnings).Count | Should-Be 0 -Because 'a theme file that will not parse is reported as a warning and then ignored, which is the quietest failure available'
+        $document | Should-MatchString 'F2C14E'
+    }
+
     It 'round-trips maps, lists and scalars through Import-PowerShellDataFile' {
         InModuleScope PSGraphRenderToHtml {
             $file = Join-Path ([IO.Path]::GetTempPath()) ('writer-' + [guid]::NewGuid().ToString('N') + '.psd1')
@@ -154,6 +175,7 @@ Describe 'A theme override reaches the backend, including a nested one' {
                     Yes    = $true
                     Ramp   = @('#111111', '#222222')
                     Nested = @{ Inner = @{ Deep = 3 }; Colour = '#A99BF2' }
+                    Keys   = @{ 'cross-cutting' = 'x'; 'powershell-module' = 'y'; Plain = 'z' }
                     Empty  = @{}
                 }
                 Write-PowerShellDataFile -Path $file -Data $data
@@ -165,6 +187,9 @@ Describe 'A theme override reaches the backend, including a nested one' {
                 @($back.Ramp) | Should-BeCollection @('#111111', '#222222')
                 $back.Nested.Colour | Should-Be '#A99BF2'
                 $back.Nested.Inner.Deep | Should-Be 3
+                $back.Keys['cross-cutting'] | Should-Be 'x'
+                $back.Keys['powershell-module'] | Should-Be 'y'
+                $back.Keys['Plain'] | Should-Be 'z'
                 $back.Empty.Count | Should-Be 0
             }
             finally { Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue }
