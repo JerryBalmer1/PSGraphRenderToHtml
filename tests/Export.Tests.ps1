@@ -89,3 +89,85 @@ Describe 'Export-ProducerGraphHtml renders through PSGraphRender' -Tag 'Integrat
         (Get-Content -LiteralPath $out -Raw) | Should-MatchString '"DefaultFlow"\s*:\s*"testorder"'
     }
 }
+
+Describe 'A theme override reaches the backend, including a nested one' {
+
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
+        Import-ToHtmlUnderTest
+        $script:Work = Join-Path ([IO.Path]::GetTempPath()) ('tohtml-theme-' + [guid]::NewGuid().ToString('N'))
+        $null = New-Item -ItemType Directory -Path $script:Work -Force
+        $script:GraphFile = Join-Path $script:Work 'graph.json'
+        Get-ConformingGraph | ConvertTo-Json -Depth 20 |
+            Set-Content -LiteralPath $script:GraphFile -Encoding utf8NoBOM
+    }
+
+    AfterAll {
+        if (Test-Path -LiteralPath $script:Work) {
+            Remove-Item -LiteralPath $script:Work -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'renders with a nested theme value, which v0.1.1 could not do at all' {
+        # THE WHOLE OF -Theme WAS UNUSABLE, and not only for nested values the
+        # caller passes. The overlay writer emits the MERGED file, so
+        # PSGraphRender's own theme.psd1 - KindColor, LinkColor and
+        # EdgeResolutionStyle are all maps - had to survive the round trip
+        # before any theme key could be applied. It threw on
+        # EdgeResolutionStyle, a key no caller had mentioned.
+        $options = New-GraphRenderOptions -Theme @{
+            KindColor = @{ Function = '#A99BF2'; Class = '#79D9A8' }
+        }
+        $document = Export-ProducerGraphHtml -Path $script:GraphFile -Options $options
+        $document | Should-MatchString 'A99BF2'
+        $document | Should-MatchString '79D9A8'
+    }
+
+    It 'refuses a theme key the backend never declared, still' {
+        { Export-ProducerGraphHtml -Path $script:GraphFile -Options (
+                New-GraphRenderOptions -Theme @{ NotAThemeKey = 'x' }) } |
+            Should-Throw -ExceptionMessage '*NotAThemeKey*'
+    }
+
+    It 'refuses a value it cannot write, naming the key path rather than the type alone' {
+        # The refusal is the half of the writer that has to keep working. A
+        # writer that silently emits something Import-PowerShellDataFile
+        # rejects moves the failure three stages from its cause.
+        InModuleScope PSGraphRenderToHtml {
+            $file = Join-Path ([IO.Path]::GetTempPath()) ('writer-' + [guid]::NewGuid().ToString('N') + '.psd1')
+            try {
+                { Write-PowerShellDataFile -Path $file -Data @{
+                        KindColor = @{ Enum = [scriptblock]::Create('1') }
+                    } } | Should-Throw -ExceptionMessage '*KindColor.Enum*'
+            }
+            finally { Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue }
+        }
+    }
+
+    It 'round-trips maps, lists and scalars through Import-PowerShellDataFile' {
+        InModuleScope PSGraphRenderToHtml {
+            $file = Join-Path ([IO.Path]::GetTempPath()) ('writer-' + [guid]::NewGuid().ToString('N') + '.psd1')
+            try {
+                $data = @{
+                    Flat   = 'a value with an '' apostrophe'
+                    Number = 1.25
+                    Yes    = $true
+                    Ramp   = @('#111111', '#222222')
+                    Nested = @{ Inner = @{ Deep = 3 }; Colour = '#A99BF2' }
+                    Empty  = @{}
+                }
+                Write-PowerShellDataFile -Path $file -Data $data
+                $back = Import-PowerShellDataFile -LiteralPath $file
+
+                $back.Flat | Should-Be "a value with an ' apostrophe"
+                $back.Number | Should-Be 1.25
+                $back.Yes | Should-BeTrue
+                @($back.Ramp) | Should-BeCollection @('#111111', '#222222')
+                $back.Nested.Colour | Should-Be '#A99BF2'
+                $back.Nested.Inner.Deep | Should-Be 3
+                $back.Empty.Count | Should-Be 0
+            }
+            finally { Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue }
+        }
+    }
+}
