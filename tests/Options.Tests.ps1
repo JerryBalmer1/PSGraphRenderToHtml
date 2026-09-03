@@ -104,3 +104,80 @@ Describe 'Option precedence: explicit beats file beats built-in' {
         { Invoke-ResolveOptions -DefaultsRoot $script:Root } | Should-Throw -ExceptionMessage '*Zoomspeeed*'
     }
 }
+
+Describe 'ColorBy is the RENDERER''s set, and the two are checked against each other' {
+
+    BeforeAll {
+        # Where PSGraphRender is, resolved the way the build and TestHelpers
+        # resolve it. The schema file lives beside the manifest in both the
+        # source layout and the built one.
+        $script:ColorBySchema = $null
+        $renderModule = Get-Module -Name PSGraphRender
+        if ($renderModule) {
+            $candidate = Join-Path (Split-Path -Parent $renderModule.Path) `
+                'TemplateSets/cytoscape/Config/settings.schema.psd1'
+            if (Test-Path -LiteralPath $candidate) { $script:ColorBySchema = $candidate }
+        }
+    }
+
+    It 'accepts every member of the renderer schema set, and carries it through' {
+        # BEHAVIOURAL, not a read of ValidValues. The defect this replaces was
+        # a set that read correctly and was not the consumer's, so the check
+        # that matters is that each value survives the round trip into the
+        # Settings hashtable the overlay writer copies.
+        foreach ($value in 'structure', 'dependents', 'blastRadius', 'dependencies', 'reach') {
+            $options = New-GraphRenderOptions -ColorBy $value
+            $options.ColorBy | Should-Be $value
+            $options.Settings.ColorBy | Should-Be $value
+        }
+    }
+
+    It 'is exactly the set PSGraphRender''s cytoscape settings schema declares' {
+        # THE TEST LEDGER 50 ASKED FOR: a cross-module ValidateSet needs a test
+        # that runs every member of it through the real consumer. Reading the
+        # consumer's own schema is the closest this module can get without
+        # rendering, and it is what would have caught the drift.
+        $script:ColorBySchema | Should-NotBeNull -Because 'PSGraphRender is a RequiredModule, so its cytoscape settings schema is on disk wherever this test can run at all'
+        $schema = Import-PowerShellDataFile -LiteralPath $script:ColorBySchema
+        # Index syntax, not dot syntax: `.Values` on a hashtable is the
+        # hashtable's OWN Values collection, so $entry.Values silently returns
+        # every field of the entry rather than the enum it declares. It fails
+        # as a null rather than as a wrong answer, which is the only luck in it.
+        $declared = @($schema['Entries']['ColorBy']['Values'])
+        @($declared).Count | Should-BeGreaterThan 1 -Because 'an Enum entry that declares no values means the schema moved and this test is reading the wrong thing'
+
+        $accepted = foreach ($value in $declared) {
+            try { (New-GraphRenderOptions -ColorBy $value).ColorBy } catch { "REFUSED: $value" }
+        }
+        @($accepted) | Should-BeCollection @($declared) -Because 'every value the renderer accepts must reach it'
+    }
+
+    It 'refuses a value the renderer never accepted, naming both sides' {
+        # 'scope' and 'type' were this module's up to v0.1.0. The message has
+        # to name the renderer, because a caller reading it is looking at the
+        # wrong repository's documentation.
+        foreach ($value in 'scope', 'type') {
+            { New-GraphRenderOptions -ColorBy $value } |
+                Should-Throw -ExceptionMessage '*PSGraphRender*'
+            { New-GraphRenderOptions -ColorBy $value } |
+                Should-Throw -ExceptionMessage '*blastRadius*'
+        }
+    }
+
+    It 'offers the same set to tab completion as it accepts' {
+        # Two literal lists live in the parameter's attributes. This is what
+        # stops them drifting apart, and it compares behaviour rather than
+        # text.
+        $parameter = (Get-Command New-GraphRenderOptions).Parameters['ColorBy']
+        $completer = @($parameter.Attributes |
+                Where-Object { $_ -is [System.Management.Automation.ArgumentCompleterAttribute] })
+        @($completer).Count | Should-Be 1
+        $offered = @(& $completer[0].ScriptBlock 'New-GraphRenderOptions' 'ColorBy' '' $null @{})
+        @([string[]]$offered) |
+            Should-BeCollection @('structure', 'dependents', 'blastRadius', 'dependencies', 'reach')
+    }
+
+    It 'defaults to structure, which is the renderer''s default too' {
+        (New-GraphRenderOptions).Settings.ColorBy | Should-Be 'structure'
+    }
+}

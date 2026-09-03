@@ -1,6 +1,6 @@
 @{
     RootModule           = 'PSGraphRenderToHtml.psm1'
-    ModuleVersion        = '0.1.0'
+    ModuleVersion        = '0.1.1'
     GUID                 = 'e076328c-a8d8-4789-b423-c296f7a9d2ad'
     Author               = 'JerryBalmer1'
     CompanyName          = 'JerryBalmer1'

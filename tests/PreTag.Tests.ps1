@@ -96,7 +96,7 @@ Describe 'The version this repository claims is one version' -Tag 'PreTag' {
         $manifest = Import-PowerShellDataFile -LiteralPath (Join-Path $script:Repo 'src/PSGraphRenderToHtml/PSGraphRenderToHtml.psd1')
         $schema = Get-Content -LiteralPath (Join-Path $script:Repo 'contract/producer-graph.schema.json') -Raw | ConvertFrom-Json
 
-        $manifest.ModuleVersion | Should-Be '0.1.0'
+        $manifest.ModuleVersion | Should-Be '0.1.1'
         $schema.version | Should-Be '0.1.0'
 
         # The worklog for the module version must exist, or the release has no
