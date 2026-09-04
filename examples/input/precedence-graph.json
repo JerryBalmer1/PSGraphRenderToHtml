@@ -1,0 +1,31 @@
+{
+  "graph": {
+    "meta": {
+      "producer": "PSGraphRenderToHtml.Examples",
+      "producerVersion": "0.1.3",
+      "contractVersion": "0.1.0",
+      "generatedUtc": "2026-09-03T00:00:00Z",
+      "roots": ["REPLACE-WITH-YOUR-CLONE-PATH/estate"]
+    },
+    "nodes": [
+      { "id": "repo:app", "label": "app", "type": "repository", "scope": "app", "parentId": null },
+      { "id": "app:root", "label": "root", "type": "module", "scope": "app", "parentId": "repo:app" },
+      { "id": "app:web", "label": "web", "type": "module", "scope": "app", "parentId": "app:root" },
+      { "id": "app:db", "label": "db", "type": "module", "scope": "app", "parentId": "app:root" },
+      { "id": "app:cache", "label": "cache", "type": "module", "scope": "app", "parentId": "app:root" },
+      { "id": "app:web.replicas", "label": "replicas", "type": "variable", "scope": "app", "parentId": "app:web", "attributes": { "hasDefault": true, "required": false } },
+      { "id": "app:db.size", "label": "size", "type": "variable", "scope": "app", "parentId": "app:db", "attributes": { "hasDefault": false, "required": true } },
+      { "id": "app:db.endpoint", "label": "endpoint", "type": "output", "scope": "app", "parentId": "app:db" },
+      { "id": "app:cache.endpoint", "label": "endpoint", "type": "output", "scope": "app", "parentId": "app:cache" }
+    ],
+    "edges": [
+      { "from": "app:root", "to": "app:web", "kind": "sources" },
+      { "from": "app:root", "to": "app:db", "kind": "sources" },
+      { "from": "app:root", "to": "app:cache", "kind": "sources" },
+      { "from": "app:web", "to": "app:db.endpoint", "kind": "references", "label": "endpoint" },
+      { "from": "app:web", "to": "app:cache.endpoint", "kind": "references", "label": "endpoint" },
+      { "from": "app:web", "to": "app:web.replicas", "kind": "passes-to" },
+      { "from": "app:db", "to": "app:db.size", "kind": "passes-to" }
+    ]
+  }
+}

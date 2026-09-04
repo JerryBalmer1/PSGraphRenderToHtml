@@ -2,6 +2,38 @@
 
 **Read this first.** It assumes you know nothing about this repository.
 
+## State, as of pass 0043
+
+**Where it is.** v0.1.3, no tag taken this pass. `examples/` holds four
+generated reports — one nesting demonstration and the three-way precedence
+trio — each with its producer graph, a 1600x900 screenshot, and a paste-able
+rebuild command. `README.md` leads with the nesting screenshot;
+[`examples/README.md`](../examples/README.md) is the full index.
+
+**What pass 0043 did here.** Documentation and generated artifacts only. **No
+`src/` file was changed.**
+
+**What it found, and did not fix.** Two things, both recorded rather than
+touched:
+
+1. **`meta.generatedAt` is a clock reading, not the producer's fact.**
+   `ConvertTo-GraphRenderViewModel` sets it from `[DateTime]::UtcNow` and never
+   reads `graph.meta.generatedUtc`, which the producer contract defines and
+   every example input carries. Two renders of one unchanged graph therefore
+   differ in one field, so these reports cannot be byte-compared — the examples
+   index says so and gives the one-line normalisation. Whether the producer's
+   scan time should win is a real question and nobody has been asked it.
+
+2. **An explicit `-Options` beats the defaults file on every key**, including
+   keys the caller never named, because `New-GraphRenderOptions` returns a
+   complete object rather than a patch. This is defensible and it is not what
+   a reader expects from "whole-key merge", which describes the level below.
+   `examples/precedence/` now demonstrates it deliberately rather than leaving
+   it to be discovered.
+
+**Next.** Neither finding is a defect with a failing test behind it. Both want
+a decision before any code moves.
+
 ## What this is
 
 The battery between a producer and a renderer.

@@ -1,5 +1,10 @@
 # PSGraphRenderToHtml
 
+[![Module 0.1.3](https://img.shields.io/badge/module-0.1.3-blue)](docs/worklog/v0.1.3.md)
+[![Producer contract 0.1.0](https://img.shields.io/badge/producer%20contract-0.1.0-6ddf6d)](contract/producer-graph.schema.json)
+[![Requires PSGraphRender 0.13.0+](https://img.shields.io/badge/PSGraphRender-0.13.0%2B-9b8cff)](https://github.com/JerryBalmer1/PSGraphRender)
+[![Licence MIT](https://img.shields.io/badge/licence-MIT-lightgrey)](LICENSE)
+
 **The battery between a producer and a renderer.** A producer says what it
 found; this turns that into an interactive HTML report, and refuses the graph by
 name when it cannot.
@@ -10,6 +15,30 @@ Import-Module PSGraphRenderToHtml
 Get-TfConfigurationGraph -Path ./infra |
     Export-ProducerGraphHtml -OutputPath ./report.html
 ```
+
+![Three repositories with modules nested four deep](examples/nesting/nested.png)
+
+<sup>Three repositories, modules nested four deep through `parentId`, coloured
+by the producer's own classifications. Open
+[the report](examples/nesting/nested.html) — one file, no server, no network.</sup>
+
+## Examples
+
+Each report is committed with the producer graph that produced it and the
+command that rebuilds it. Run each from the repository root.
+
+| Example | What it shows | Artifacts | Regenerate |
+| --- | --- | --- | --- |
+| **Nesting** | Modules nested four deep via `parentId`, plus an unresolved edge carried with its reason rather than dropped. | [html](examples/nesting/nested.html) · [input](examples/input/nested-graph.json) · [png](examples/nesting/nested.png) | `pwsh -NoProfile -File examples/Build-Examples.ps1 -Only nesting` |
+| **Precedence — built-ins** | No options at all: `foundation`, `structure`, and every node in fallback grey. | [html](examples/precedence/builtins.html) · [input](examples/input/precedence-graph.json) · [png](examples/precedence/builtins.png) | `pwsh -NoProfile -File examples/Build-Examples.ps1 -Only builtins` |
+| **Precedence — defaults file** | The same graph plus [`graphrender.defaults.psd1`](examples/precedence/graphrender.defaults.psd1). Keys it names move; keys it does not stay built-in. | [html](examples/precedence/file-defaults.html) · [input](examples/input/precedence-graph.json) · [png](examples/precedence/file-defaults.png) | `pwsh -NoProfile -File examples/Build-Examples.ps1 -Only file` |
+| **Precedence — explicit** | The same graph and the same defaults file, beaten by an explicit `-Options`. | [html](examples/precedence/explicit.html) · [input](examples/input/precedence-graph.json) · [png](examples/precedence/explicit.png) | `pwsh -NoProfile -File examples/Build-Examples.ps1 -Only explicit` |
+
+Those three precedence reports are the same nine-node graph rendered three
+ways, so every difference between them is the option system and nothing else —
+including one result that surprises. See
+[`examples/README.md`](examples/README.md) for the full index, the precedence
+table, and why these reports are not byte-reproducible.
 
 ## The one rule
 

@@ -1,0 +1,63 @@
+{
+  "graph": {
+    "meta": {
+      "producer": "PSGraphRenderToHtml.Examples",
+      "producerVersion": "0.1.3",
+      "contractVersion": "0.1.0",
+      "generatedUtc": "2026-09-03T00:00:00Z",
+      "roots": ["REPLACE-WITH-YOUR-CLONE-PATH/estate"]
+    },
+    "nodes": [
+      { "id": "repo:platform", "label": "platform", "type": "repository", "scope": "platform", "parentId": null },
+      { "id": "repo:services", "label": "services", "type": "repository", "scope": "services", "parentId": null },
+      { "id": "repo:shared", "label": "shared", "type": "repository", "scope": "shared", "parentId": null },
+
+      { "id": "platform:root", "label": "root", "type": "module", "scope": "platform", "parentId": "repo:platform", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/platform/main.tf" },
+      { "id": "platform:naming", "label": "naming", "type": "module", "scope": "platform", "parentId": "platform:root", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/platform/modules/naming/main.tf" },
+      { "id": "platform:naming.prefix", "label": "prefix", "type": "variable", "scope": "platform", "parentId": "platform:naming", "attributes": { "hasDefault": true, "required": false } },
+      { "id": "platform:naming.suffix", "label": "suffix", "type": "variable", "scope": "platform", "parentId": "platform:naming", "attributes": { "hasDefault": false, "required": true } },
+      { "id": "platform:naming.name", "label": "name", "type": "output", "scope": "platform", "parentId": "platform:naming" },
+      { "id": "platform:network", "label": "network", "type": "module", "scope": "platform", "parentId": "platform:root", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/platform/modules/network/main.tf" },
+      { "id": "platform:network.subnet", "label": "subnet", "type": "module", "scope": "platform", "parentId": "platform:network", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/platform/modules/network/modules/subnet/main.tf" },
+      { "id": "platform:network.subnet.cidr", "label": "cidr", "type": "variable", "scope": "platform", "parentId": "platform:network.subnet", "attributes": { "hasDefault": false, "required": true } },
+      { "id": "platform:network.id", "label": "network_id", "type": "output", "scope": "platform", "parentId": "platform:network" },
+
+      { "id": "services:root", "label": "root", "type": "module", "scope": "services", "parentId": "repo:services", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/services/main.tf" },
+      { "id": "services:api", "label": "api", "type": "module", "scope": "services", "parentId": "services:root", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/services/modules/api/main.tf" },
+      { "id": "services:api.worker", "label": "worker", "type": "module", "scope": "services", "parentId": "services:api", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/services/modules/api/modules/worker/main.tf" },
+      { "id": "services:api.worker.queue", "label": "queue", "type": "module", "scope": "services", "parentId": "services:api.worker" },
+      { "id": "services:api.worker.queue.depth", "label": "max_depth", "type": "variable", "scope": "services", "parentId": "services:api.worker.queue", "attributes": { "hasDefault": true, "required": false } },
+      { "id": "services:api.url", "label": "url", "type": "output", "scope": "services", "parentId": "services:api" },
+      { "id": "services:env", "label": "env", "type": "variable", "scope": "services", "parentId": "services:root", "attributes": { "hasDefault": false, "required": true } },
+      { "id": "services:tags", "label": "tags", "type": "local", "scope": "services", "parentId": "services:root" },
+      { "id": "services:legacy", "label": "shared/legacy", "type": "module", "scope": "services", "parentId": "services:root" },
+
+      { "id": "shared:root", "label": "root", "type": "module", "scope": "shared", "parentId": "repo:shared", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/shared/main.tf" },
+      { "id": "shared:tagging", "label": "tagging", "type": "module", "scope": "shared", "parentId": "shared:root", "path": "REPLACE-WITH-YOUR-CLONE-PATH/estate/shared/modules/tagging/main.tf" },
+      { "id": "shared:tagging.tags", "label": "tags", "type": "output", "scope": "shared", "parentId": "shared:tagging" },
+
+      { "id": "provider:random", "label": "random 3.6.0", "type": "provider", "scope": "platform", "parentId": "repo:platform", "attributes": { "pinned": true } },
+      { "id": "provider:time", "label": "time 0.11.1", "type": "provider", "scope": "services", "parentId": "repo:services", "attributes": { "pinned": true } }
+    ],
+    "edges": [
+      { "from": "platform:root", "to": "platform:naming", "kind": "sources" },
+      { "from": "platform:root", "to": "platform:network", "kind": "sources" },
+      { "from": "platform:network", "to": "platform:network.subnet", "kind": "sources" },
+      { "from": "platform:network", "to": "platform:naming.name", "kind": "references", "label": "name" },
+      { "from": "platform:network.subnet", "to": "platform:network.subnet.cidr", "kind": "passes-to" },
+
+      { "from": "services:root", "to": "services:api", "kind": "sources" },
+      { "from": "services:api", "to": "services:api.worker", "kind": "sources" },
+      { "from": "services:api.worker", "to": "services:api.worker.queue", "kind": "sources" },
+      { "from": "services:api", "to": "services:env", "kind": "references" },
+      { "from": "services:api", "to": "platform:network.id", "kind": "references", "label": "network_id" },
+      { "from": "services:root", "to": "services:tags", "kind": "references" },
+      { "from": "services:tags", "to": "shared:tagging.tags", "kind": "references" },
+      { "from": "services:root", "to": "services:legacy", "kind": "sources", "resolved": false, "reason": "sourced from ../shared/legacy, which is present in no scanned repository" },
+
+      { "from": "shared:root", "to": "shared:tagging", "kind": "sources" },
+      { "from": "platform:root", "to": "provider:random", "kind": "requires" },
+      { "from": "services:root", "to": "provider:time", "kind": "requires" }
+    ]
+  }
+}
