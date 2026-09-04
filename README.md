@@ -63,7 +63,7 @@ That rule is what keeps a producer small. It observes; it does not compute.
     "nodes": [
       { "id": "repo:app", "label": "app", "type": "repository", "scope": "app" },
       { "id": "app:root", "label": "root", "type": "module", "scope": "app",
-        "parentId": "repo:app", "path": "C:/src/app/main.tf" }
+        "parentId": "repo:app", "path": "/srv/src/app/main.tf" }
     ],
     "edges": [
       { "from": "app:root", "to": "repo:app", "kind": "references" },
